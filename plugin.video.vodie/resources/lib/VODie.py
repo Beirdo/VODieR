@@ -4,6 +4,7 @@
     VODie
     kitesurfing@kitesurfing.ie
     modified: jpearce
+    modified: shanemeagher@outlook.com
 """
 
 import sys
@@ -142,6 +143,9 @@ class UI:
         if isFolder:
             self.endofdirectory()
         else:
+            # Enable additional views, e.g. Media, Media2, Media3, etc
+            xbmcplugin.setContent(int(sys.argv[1]), 'episodes')
+
             self.endofdirectory([xbmcplugin.SORT_METHOD_DATE, xbmcplugin.SORT_METHOD_NONE])
 
 class Main:
