@@ -115,8 +115,8 @@ class RTE:
             socks.wrapmodule(urllib2)
 
         page = urllib2.urlopen(url)
-		
-        self.soup = BeautifulStoneSoup(page, selfClosingTags=['link','category','media:player','media:thumbnail'])
+        source = page.read().replace('&#39;',"'")
+        self.soup = BeautifulStoneSoup(source, selfClosingTags=['link','category','media:player','media:thumbnail'])
         page.close()
 
         items = self.soup.findAll('entry')
@@ -314,7 +314,8 @@ class RTE:
             socks.wrapmodule(urllib2)
         
         page = urllib2.urlopen(PROGRAMME_URL + titleShowID)
-        soup = BeautifulStoneSoup(page, selfClosingTags=['link','category','media:player','media:thumbnail'])
+        source = page.read().replace('&#39;',"'")
+        soup = BeautifulStoneSoup(source, selfClosingTags=['link','category','media:player','media:thumbnail'])
         page.close()
         
         items = soup.findAll('entry')
@@ -323,7 +324,8 @@ class RTE:
             # OK, that didn't work. Try using the ID to search for episodes
             urlShowID = EPISODE%(showId)            
             page = urllib2.urlopen(urlShowID)
-            soup = BeautifulStoneSoup(page, selfClosingTags=['link','category','media:player','media:thumbnail'])
+            source = page.read().replace('&#39;',"'")
+            soup = BeautifulStoneSoup(source, selfClosingTags=['link','category','media:player','media:thumbnail'])
             page.close()            
             items = soup.findAll('entry')
             
