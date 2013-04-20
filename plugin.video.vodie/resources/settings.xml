@@ -1,16 +1,28 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <settings>
     <!--RTE-->
-    <category label="30075">
-        <setting id="ads" type="bool" label="30070" default="true" />
+    <category label="30070">
+        <setting id="ads" type="bool" label="30071" default="true" />
     </category>
     
     <!--Aer TV-->
-    <category label="30085">
-        <setting id="aertv_username" type="text" label="30080" default=""/>
-        <setting id="aertv_password" type="text" option="hidden" label="30081" enable="!eq(-1,)" default=""/>
+    <category label="30080">
+        <setting id="aertv_username" type="text" label="30081" default=""/>
+        <setting id="aertv_password" type="text" option="hidden" label="30082" enable="!eq(-1,)" default=""/>
 		<setting type="lsep" label="Your account details at AerTV.ie"/>
 		<setting type="lsep" label="(not currently used by the plugin)"/>
     </category>
-    
+
+    <!--Proxy-->
+    <category label="30085">
+        <setting id="proxy" type="bool" label="30086" default="false" />
+	<setting type="lsep" label="30087" visible="eq(-1,true)"></setting>
+        <setting id="proxy_address" type="text" label="30088" visible="eq(-2,true)" default=""/>
+        <setting id="proxy_port" type="number" label="30089" visible="eq(-3,true)" default="0"/>
+        <setting id="proxy_type" type="labelenum" label="30090" visible="eq(-4,true)" lvalues="30091|30092|30093"/>
+	<setting type="lsep" label="30094" visible="eq(-5,true)+!eq(-3,)"/>
+        <setting id="proxy_username" type="text" label="30095" visible="eq(-6,true)+!eq(-4,)" default=""/>
+        <setting id="proxy_password" type="text" option="hidden" label="30096" visible="eq(-7,true)+!eq(-5,)" default=""></setting>
+    </category>
+
 </settings>

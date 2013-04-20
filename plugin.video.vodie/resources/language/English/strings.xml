@@ -28,11 +28,24 @@
     <string id="30005">Favorites</string>
     
     <!--Settings-->
-    <string id="30075">Playing Videos</string>
-    <string id="30070">Include Ads</string>
+    <string id="30070">Playing Videos</string>
+    <string id="30071">Include Ads</string>
     
-    <string id="30085">AerTV</string>
-    <string id="30080">Username</string>
-    <string id="30081">Password</string>
-    
+    <string id="30080">AerTV</string>
+    <string id="30081">Username</string>
+    <string id="30082">Password</string>
+
+    <string id="30085">Proxy</string>
+    <string id="30086">Enabled</string>
+    <string id="30087">Server</string>
+    <string id="30088">IP Address</string>
+    <string id="30089">Port</string>
+    <string id="30090">Type</string>
+    <string id="30091">HTTP</string>
+    <string id="30092">SOCKS4</string>
+    <string id="30093">SOCKS5</string>
+    <string id="30094">Authentication</string>
+    <string id="30095">Username</string>
+    <string id="30096">Password</string>
+
 </strings>

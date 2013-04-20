@@ -4,6 +4,7 @@
     VODie
     kitesurfing@kitesurfing.ie
     modified: jpearce
+    modified: shanemeagher@outlook.com
 """
 
 import re
@@ -49,9 +50,9 @@ class Channels:
         elif mode == TV3Scraper.CHANNEL:
             return TV3().grabDetails(url, img, title)
         
-    def getVideoDetails(self, channel, url, skipAds):
+    def getVideoDetails(self, channel, url, proxy, skipAds):
         if channel == RTEScraper.CHANNEL:
-            return RTE().getVideoDetails(url, skipAds)
+            return RTE().getVideoDetails(url, proxy, skipAds)
         elif channel == TG4Scraper.CHANNEL:
             return TG4().getVideoDetails(url)
         elif channel == TV3Scraper.CHANNEL:
@@ -77,9 +78,9 @@ class Channels:
         elif channel == AnlarScraper.CHANNEL:
             return Anlar().getMainMenu(), True
             
-    def getEpisodes(self, channel, showID):
+    def getEpisodes(self, channel, showID, proxy):
         if channel == RTEScraper.CHANNEL:
-            return RTE().getEpisodes(showID)
+            return RTE().getEpisodes(showID, proxy)
         elif channel == TG4Scraper.CHANNEL:
             return TG4().getEpisodes(showID)
         elif channel == TV3Scraper.CHANNEL:
@@ -99,14 +100,14 @@ class Channels:
         elif channel == AerTVScraper.CHANNEL:
             return url
 
-    def getMenu(self, channel, menutype, name = None):
+    def getMenu(self, channel, menutype, name = None, proxy = {}):
         if channel == RTEScraper.CHANNEL:
             if menutype == MenuConstants.MODE_CATEGORY:
-                return RTE().SearchByCategory(name)
+                return RTE().SearchByCategory(name, proxy = proxy)
             elif menutype == MenuConstants.MODE_ATOZ:
-                return RTE().SearchAtoZ(name)
+                return RTE().SearchAtoZ(name, proxy = proxy)
             else:
-                return RTE().getMenuItems(menutype)
+                return RTE().getMenuItems(menutype, proxy = proxy)
         elif channel == TG4Scraper.CHANNEL:
             return TG4().getMenuItems(menutype)
         elif channel == ShoutcastRadioScraper.CHANNEL:
