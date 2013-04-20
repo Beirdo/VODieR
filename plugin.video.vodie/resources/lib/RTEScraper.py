@@ -179,7 +179,8 @@ class RTE:
             socks.wrapmodule(urllib2)
 
         page = urllib2.urlopen(url)
-        soup = BeautifulStoneSoup(page, selfClosingTags=['link','category','media:player','media:thumbnail','rte:valid', 'rte:duration', 'rte:statistics'])
+        source = page.read().replace('&#39;',"'")
+        soup = BeautifulStoneSoup(source, selfClosingTags=['link','category','media:player','media:thumbnail','rte:valid', 'rte:duration', 'rte:statistics'])
         page.close()
         
         entry = soup.find('entry')
