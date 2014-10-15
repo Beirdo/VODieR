@@ -259,11 +259,14 @@ class RTE:
         titleShowID = str(splitString[0][0])
         showId = str(splitString[0][1]).split('=')[-1]
                
-        page = urllib2.urlopen(PROGRAMME_URL + titleShowID)
-        soup = BeautifulStoneSoup(page, selfClosingTags=['link','category','media:player','media:thumbnail'])
-        page.close()
+        try:
+            page = urllib2.urlopen(PROGRAMME_URL + titleShowID)
+            soup = BeautifulStoneSoup(page, selfClosingTags=['link','category','media:player','media:thumbnail'])
+            page.close()
         
-        items = soup.findAll('entry')
+            items = soup.findAll('entry')
+        except urllib2.HTTPError:
+            items = None
         if not items:
             # That works for some things, but not this show ... 
             # OK, that didn't work. Try using the ID to search for episodes
@@ -347,5 +350,14 @@ class RTE:
                         
 if __name__ == '__main__':
     # Test Main Menu
-    print RTE().getMainMenu()
-    
+    rte = RTE()
+    print rte.getMainMenu()
+    menu = rte.getMenuItems('latest')
+    for item in menu:
+        print item
+        continue
+	episodes = rte.getEpisodes(item['url'])
+        for episode in episodes:
+            print episode
+            print list(rte.getVideoDetails(episode['url'], False))
+            break
