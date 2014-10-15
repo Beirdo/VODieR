@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# vim:ts=4:sw=4:ai:et:si:sts=4
 
 """
     VODie
@@ -84,6 +85,10 @@ CATYMENU =      {'Thumb'    : LOGOICON,
                  'Plot'     : 'Search by Category'
                  }
 
+menuHeirarchy = [ None, MenuConstants.MODE_CREATEMENU,
+                  MenuConstants.MODE_GETEPISODES,
+                  MenuConstants.MODE_PLAYVIDEO ]
+
 class RTE:    
     def __init__(self):
         # We'll try to keep this up to date automatically, but this is a good starting guess
@@ -95,12 +100,15 @@ class RTE:
             url = LIVEURL
         else:
             url = SHOW_BY_TYPE_URL%(type) + params
-        page = urllib2.urlopen(url)
-		
-        self.soup = BeautifulStoneSoup(page, selfClosingTags=['link','category','media:player','media:thumbnail'])
-        page.close()
+        try:
+            page = urllib2.urlopen(url)
+            self.soup = BeautifulStoneSoup(page, selfClosingTags=['link','category','media:player','media:thumbnail'])
+            page.close()
 
-        items = self.soup.findAll('entry')
+            items = self.soup.findAll('entry')
+        except urllib2.HTTPError:
+            items = []
+
         for item in items:
             id = str(item.id.string).strip()
             title = str(item.title.string).strip()
@@ -347,17 +355,49 @@ class RTE:
         else:
             for item in self.getMenuItems(type='az', params='?id=%s'%(letter)):
                 yield item
-                        
+
+    def buildMenu(self, mode, type="main", menu = None, menumode = None):
+        if mode is None:
+            if type == 'az':
+                yield self.SearchAtoZ(None)
+            else:
+                yield self.getMainMenu()
+        else:
+            if (not menumode) or (not menu) or (menumode != mode):
+                index = menuHeirarchy.index(mode)
+                menu = self.buildMenu(menuHeirarchy[index-1], type, menu,
+                                      menumode)
+                menu = [item for sublist in menu for item in sublist]
+
+            for item in menu:
+                if item['mode'] != mode:
+                    print item['mode'] + " != " + mode + "\n"
+                elif mode == MenuConstants.MODE_CREATEMENU:
+                    yield self.getMenuItems(item['url'])
+                elif mode == MenuConstants.MODE_GETEPISODES:
+                    yield self.getEpisodes(item['url'])
+                elif mode == MenuConstants.MODE_PLAYVIDEO:
+                    yield self.getVideoDetails(item['url'], False)
+
+    def getAllShowsByTitle(self, titles, type="main"):
+        shows = self.buildMenu(MenuConstants.MODE_CREATEMENU, type)
+        shows = [item for sublist in shows for item in sublist]
+        regexp = re.compile("^(" + "|".join(titles) + ")$")
+        shows = [ item for item in shows if regexp.match(item['Title']) ]
+        return shows
+
+    def getAllVideosByTitle(self, titles, type="main"):
+        shows = self.getAllShowsByTitle(titles, type)
+        videos = self.buildMenu(MenuConstants.MODE_PLAYVIDEO, type=type,
+                                menumode=MenuConstants.MODE_GETEPISODES,
+                                menu = shows)
+        videos = [item for sublist in videos for item in sublist]
+        return videos
+
 if __name__ == '__main__':
     # Test Main Menu
     rte = RTE()
-    print rte.getMainMenu()
-    menu = rte.getMenuItems('latest')
-    for item in menu:
-        print item
-        continue
-	episodes = rte.getEpisodes(item['url'])
-        for episode in episodes:
-            print episode
-            print list(rte.getVideoDetails(episode['url'], False))
-            break
+    titles = [ "The Beo Show Virtuoso", "Nuacht", "Budget.*" ]
+    videos = rte.getAllVideosByTitle(titles)
+    print videos
+
