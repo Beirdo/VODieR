@@ -5,6 +5,7 @@
     kitesurfing@kitesurfing.ie
     
     modified: liam.friel@gmail.com
+    modified: shanemeagher@outlook.com
 """
 
 import re
@@ -14,6 +15,9 @@ import urllib, urllib2
 from TVSeriesUtil import Util
 import MenuConstants
 import simplejson as S
+
+# Import SocksiPy
+import socks
 
 # Player Constants
 CONFIGURL = 'http://www.rte.ie/player/config/config.xml'
@@ -88,16 +92,31 @@ class RTE:
     def __init__(self):
         # We'll try to keep this up to date automatically, but this is a good starting guess
         self.SWFURL = DEFAULTSWFURL
+
+    def getShows(self,type, params='', proxy = {}):
         
-    def getShows(self,type, params=''):
         # Live show list comes from a different URL 
         if type == LIVE:
             url = LIVEURL
         else:
             url = SHOW_BY_TYPE_URL%(type) + params
+
+        # Check if proxy enabled & set
+        if proxy['proxy'] == True and proxy['proxy_address'] <> "" and proxy['proxy_port'] <> 0:
+            # Set the proxy information
+            if proxy['proxy_type'] == 'HTTP':
+                socks.setdefaultproxy(socks.PROXY_TYPE_HTTP, proxy['proxy_address'], proxy['proxy_port'])
+            elif proxy['proxy_type'] == 'SOCKS4':
+                socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS4, proxy['proxy_address'], proxy['proxy_port'])
+            elif proxy['proxy_type'] == 'SOCKS5':
+                socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, proxy['proxy_address'], proxy['proxy_port'])
+
+            # Wrap urllib2 module
+            socks.wrapmodule(urllib2)
+
         page = urllib2.urlopen(url)
-		
-        self.soup = BeautifulStoneSoup(page, selfClosingTags=['link','category','media:player','media:thumbnail'])
+        source = page.read().replace('&#39;',"'")
+        self.soup = BeautifulStoneSoup(source, selfClosingTags=['link','category','media:player','media:thumbnail'])
         page.close()
 
         items = self.soup.findAll('entry')
@@ -113,7 +132,6 @@ class RTE:
                     yield { "id": id, "title":title, "thumb":str(pic)}                 
             else:
                 yield { "id": id, "title":title, "thumb":str(pic)}
-
 
     def getChannelDetail(self):
         return {'Channel': CHANNEL,
@@ -143,12 +161,26 @@ class RTE:
         except:
             pass        
         
-    def getVideoDetails(self, url, includeAds = True):
-    
+    def getVideoDetails(self, url, proxy, includeAds = True):
+
         self.updateSWFURL()
         
+        # Check if proxy enabled & set
+        if proxy['proxy'] == True and proxy['proxy_address'] <> "" and proxy['proxy_port'] <> 0:
+            # Set the proxy information
+            if proxy['proxy_type'] == 'HTTP':
+                socks.setdefaultproxy(socks.PROXY_TYPE_HTTP, proxy['proxy_address'], proxy['proxy_port'])
+            elif proxy['proxy_type'] == 'SOCKS4':
+                socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS4, proxy['proxy_address'], proxy['proxy_port'])
+            elif proxy['proxy_type'] == 'SOCKS5':
+                socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, proxy['proxy_address'], proxy['proxy_port'])
+
+            # Wrap urllib2 module
+            socks.wrapmodule(urllib2)
+
         page = urllib2.urlopen(url)
-        soup = BeautifulStoneSoup(page, selfClosingTags=['link','category','media:player','media:thumbnail','rte:valid', 'rte:duration', 'rte:statistics'])
+        source = page.read().replace('&#39;',"'")
+        soup = BeautifulStoneSoup(source, selfClosingTags=['link','category','media:player','media:thumbnail','rte:valid', 'rte:duration', 'rte:statistics'])
         page.close()
         
         entry = soup.find('entry')
@@ -160,8 +192,17 @@ class RTE:
         duration   = self.getStringFor(entry, 'rte:duration','formatted')
         rating     = self.getStringFor(entry, 'media:rating')
         copyright  = self.getStringFor(entry, 'media:copyright')
-        title      = self.getStringFor(entry, 'title')        
+        title      = self.getStringFor(entry, 'title')
         id         = self.getStringFor(entry, 'id')
+
+        print "Source URL: " + url
+        print "Published Date: " + published
+        print "Plot: " + plot
+        print "Length: " + duration
+        print "Rating: " + rating
+        print "Copyright: " + copyright
+        print "Title: " + title
+        print "ID: " + id
 
         categories = entry.findAll('category')
         categories_str = u''
@@ -251,7 +292,7 @@ class RTE:
                 ATOZMENU,
                 CATYMENU] 
 
-    def getEpisodes(self, combinedShowID):
+    def getEpisodes(self, combinedShowID, proxy):
         
         # A bit hacky ...
         # Split into "title" style id and URL
@@ -259,8 +300,22 @@ class RTE:
         titleShowID = str(splitString[0][0])
         showId = str(splitString[0][1]).split('=')[-1]
                
+        # Check if proxy enabled & set
+        if proxy['proxy'] == True and proxy['proxy_address'] <> "" and proxy['proxy_port'] <> 0:
+            # Set the proxy information
+            if proxy['proxy_type'] == 'HTTP':
+                socks.setdefaultproxy(socks.PROXY_TYPE_HTTP, proxy['proxy_address'], proxy['proxy_port'])
+            elif proxy['proxy_type'] == 'SOCKS4':
+                socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS4, proxy['proxy_address'], proxy['proxy_port'])
+            elif proxy['proxy_type'] == 'SOCKS5':
+                socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, proxy['proxy_address'], proxy['proxy_port'])
+
+            # Wrap urllib2 module
+            socks.wrapmodule(urllib2)
+        
         page = urllib2.urlopen(PROGRAMME_URL + titleShowID)
-        soup = BeautifulStoneSoup(page, selfClosingTags=['link','category','media:player','media:thumbnail'])
+        source = page.read().replace('&#39;',"'")
+        soup = BeautifulStoneSoup(source, selfClosingTags=['link','category','media:player','media:thumbnail'])
         page.close()
         
         items = soup.findAll('entry')
@@ -269,7 +324,8 @@ class RTE:
             # OK, that didn't work. Try using the ID to search for episodes
             urlShowID = EPISODE%(showId)            
             page = urllib2.urlopen(urlShowID)
-            soup = BeautifulStoneSoup(page, selfClosingTags=['link','category','media:player','media:thumbnail'])
+            source = page.read().replace('&#39;',"'")
+            soup = BeautifulStoneSoup(source, selfClosingTags=['link','category','media:player','media:thumbnail'])
             page.close()            
             items = soup.findAll('entry')
             
@@ -297,13 +353,13 @@ class RTE:
                     'Plot'         : desc
                     }
             
-    def getMenuItems(self, type, params = '', mode = MenuConstants.MODE_GETEPISODES):
+    def getMenuItems(self, type, params = '', mode = MenuConstants.MODE_GETEPISODES, proxy = {}):
         # the problem is in here
         # for some shows which have several episodes, the correct thing to return is the title (like here)
         # but for some, it seems like the show['id'] would be better
         # this would allow us to find the correct episodes
         # so what we need to do is return both and sort it out when getting the episode
-        for show in self.getShows(type, params):
+        for show in self.getShows(type, params, proxy):
             if type == LIVE:
                 yield {'Title':show['title'],
                        'Channel': CHANNEL,
@@ -321,18 +377,18 @@ class RTE:
                        #'Fanart_Image':fanart
                        }
                         
-    def SearchByCategory(self, genre = None):
+    def SearchByCategory(self, genre = None, proxy = {}):
         if genre == None or genre == '' or genre == 'Search by Category':
             categories = []
-            for category in self.getMenuItems(type='genrelist', mode=MenuConstants.MODE_CREATEMENU):
+            for category in self.getMenuItems(type='genrelist', mode=MenuConstants.MODE_CREATEMENU, proxy=proxy):
                 category['url'] = MenuConstants.MODE_CATEGORY
                 categories.append(category)
             return categories
             
         else:
-            return self.getMenuItems(type='genre', params='?id=%s'%(urllib.quote(genre)))
+            return self.getMenuItems(type='genre', params='?id=%s'%(urllib.quote(genre)), proxy=proxy)
 
-    def SearchAtoZ(self, letter = None):
+    def SearchAtoZ(self, letter = None, proxy = {}):
         if letter == None or letter == '' or letter == 'Search by A-Z':
             for item in 'ABCDEFGHIJKLMNOPQRSTUVWXZ':
                 yield {'Thumb':LOGOICON,
@@ -342,10 +398,9 @@ class RTE:
                        'mode':MenuConstants.MODE_CREATEMENU,
                        'Plot':item}
         else:
-            for item in self.getMenuItems(type='az', params='?id=%s'%(letter)):
+            for item in self.getMenuItems(type='az', params='?id=%s'%(letter), proxy=proxy):
                 yield item
                         
 if __name__ == '__main__':
     # Test Main Menu
     print RTE().getMainMenu()
-    

@@ -4,6 +4,7 @@
     VODie
     kitesurfing@kitesurfing.ie
     modified: jpearce
+    modified: shanemeagher@outlook.com
 """
 
 import sys
@@ -33,7 +34,6 @@ class updateArgs:
             else:
                 kwargs[key] = urllib.unquote_plus(kwargs[key])
         self.__dict__.update(kwargs)
-
 
 class UI:
 
@@ -87,7 +87,7 @@ class UI:
                              '&icon='    +urllib.quote_plus(info['Thumb'])+\
                              '&channel=' +urllib.quote_plus(info['Channel'])
                 runScript = "XBMC.RunPlugin(%s)" % contexturl
-                li.addContextMenuItems([('Add to Favorite Program Series', runScript)], True)
+                li.addContextMenuItems([('Add to Favorite Program Series', runScript)], False)
             else:
                 contexturl = 'plugin://plugin.video.vodie/?'+\
                     'mode=delfavorite'+\
@@ -96,7 +96,7 @@ class UI:
                     '&icon='+urllib.quote_plus(info['Thumb'])+\
                     '&channel='+urllib.quote_plus(info['Channel'])
                 runScript = "XBMC.RunPlugin(%s)" % contexturl
-                li.addContextMenuItems([('Remove from Favorite Program Series', runScript)], True)
+                li.addContextMenuItems([('Remove from Favorite Program Series', runScript)], False)
                 
         #add item to list
         ok=xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=u, listitem=li, isFolder=isFolder)
@@ -142,6 +142,9 @@ class UI:
         if isFolder:
             self.endofdirectory()
         else:
+            # Enable additional views, e.g. Media, Media2, Media3, etc
+            xbmcplugin.setContent(int(sys.argv[1]), 'episodes')
+
             self.endofdirectory([xbmcplugin.SORT_METHOD_DATE, xbmcplugin.SORT_METHOD_NONE])
 
 class Main:
@@ -212,14 +215,23 @@ class Main:
         self.settings = dict()
         # Boolean allowing to enable or disable showing of the ads.        
         self.settings['include_ads'] = __settings__.getSetting('ads')
+        
+        self.settings['proxy'] = {'proxy'            :__settings__.getSetting('proxy'),
+                                  'proxy_address'    :__settings__.getSetting('proxy_address'),
+                                  'proxy_port'       :int(__settings__.getSetting('proxy_port')),
+                                  'proxy_type'       :__settings__.getSetting('proxy_type'),
+                                  'proxy_username'   :__settings__.getSetting('proxy_username'),
+                                  'proxy_password'   :__settings__.getSetting('proxy_password')}
 
     def checkMode(self):
+
         mode = self.args.mode
+
         if mode is None:
             UI().createMenu(Channels().getChannels())
 
         elif mode == MenuConstants.MODE_PLAYVIDEO:
-            video = Channels().getVideoDetails(self.args.channel, self.args.url, (self.settings['include_ads'] == 'true'))
+            video = Channels().getVideoDetails(self.args.channel, self.args.url, self.settings['proxy'], (self.settings['include_ads'] == 'true'))
             UI().playVideo(self.args.channel, video)
             
         elif mode == MenuConstants.MODE_PLAYRADIO:
@@ -230,12 +242,13 @@ class Main:
             UI().createMenu(menus, isFolder)
 
         elif mode == MenuConstants.MODE_CREATEMENU:
-            UI().createMenu(Channels().getMenu(self.args.channel, self.args.url, self.args.name))
+            UI().createMenu(Channels().getMenu(self.args.channel, self.args.url, self.args.name, self.settings['proxy']))
             
         elif mode == MenuConstants.MODE_GETEPISODES:
             if not self.args.name.find(' on %s' % (self.args.channel)) > -1:
                 self.updateRecentlyWatched({'icon':self.args.icon, 'name':self.args.name, 'url':self.args.url, 'channel':self.args.channel})
-            UI().createMenu(Channels().getEpisodes(self.args.channel, self.args.url), False)
+            UI().createMenu(Channels().getEpisodes(self.args.channel, self.args.url, self.settings['proxy']), False)
+
         elif mode == 'addfavorite':
             self.addFavorite({'name':self.args.name, 'url':self.args.url, 'channel':self.args.channel, 'icon': self.args.icon})
             

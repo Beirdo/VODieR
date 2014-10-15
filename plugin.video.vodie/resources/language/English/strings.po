@@ -1,0 +1,161 @@
+# XBMC Media Center language file
+# Addon Name: VODie - Video On Demand Ireland
+# Addon id: plugin.video.vodie
+# Addon version: 1.1.3k
+# Addon Provider: "kitesurfing@kitesurfing.ie, liam.friel@gmail.com, jpearce, shanemeagher@outlook.com
+
+msgid ""
+msgstr ""
+
+# General
+
+msgctxt "#30000"
+msgid "VODie"
+msgstr ""
+
+# Channels
+
+msgctxt "#31001"
+msgid "RTE"
+msgstr ""
+
+msgctxt "#31002"
+msgid "TV3"
+msgstr ""
+
+msgctxt "#31003"
+msgid "TG4"
+msgstr ""
+
+msgctxt "#31004"
+msgid "RTE News"
+msgstr ""
+
+msgctxt "#31005"
+msgid "Sky News Ireland"
+msgstr ""
+
+# RTE Features
+
+msgctxt "#32000"
+msgid "Features"
+msgstr ""
+
+msgctxt "#32001"
+msgid "Latest"
+msgstr ""
+
+msgctxt "#32002"
+msgid "Last Chance"
+msgstr ""
+
+msgctxt "#32003"
+msgid "Search A-Z"
+msgstr ""
+
+msgctxt "#32004"
+msgid "Search By Category"
+msgstr ""
+
+# TV3 Features
+
+msgctxt "#33001"
+msgid "All Shows"
+msgstr ""
+
+msgctxt "#33002"
+msgid "News"
+msgstr ""
+
+# Categories
+
+msgctxt "#30001"
+msgid "Latest"
+msgstr ""
+
+msgctxt "#30002"
+msgid "Last Chance2"
+msgstr ""
+
+msgctxt "#30003"
+msgid "Search"
+msgstr ""
+
+msgctxt "#30004"
+msgid "Search"
+msgstr ""
+
+msgctxt "#30005"
+msgid "Favorites"
+msgstr ""
+
+# Settings
+
+msgctxt "#30070"
+msgid "Playing Videos"
+msgstr ""
+
+msgctxt "#30071"
+msgid "Include Ads"
+msgstr ""
+    
+msgctxt "#30080"
+msgid "AerTV"
+msgstr ""
+
+msgctxt "#30081"
+msgid "Username"
+msgstr ""
+
+msgctxt "#30082"
+msgid "Password"
+msgstr ""
+
+msgctxt "#30085"
+msgid "Proxy"
+msgstr ""
+
+msgctxt "#30086"
+msgid "Enabled"
+msgstr ""
+
+msgctxt "#30087"
+msgid "Server"
+msgstr ""
+
+msgctxt "#30088"
+msgid "IP Address"
+msgstr ""
+
+msgctxt "#30089"
+msgid "Port"
+msgstr ""
+
+msgctxt "#30090"
+msgid "Type"
+msgstr ""
+
+msgctxt "#30091"
+msgid "HTTP"
+msgstr ""
+
+msgctxt "#30092"
+msgid "SOCKS4"
+msgstr ""
+
+msgctxt "#30093"
+msgid "SOCKS5"
+msgstr ""
+
+msgctxt "#30094"
+msgid "Authentication"
+msgstr ""
+
+msgctxt "#30095"
+msgid "Username"
+msgstr ""
+
+msgctxt "#30096"
+msgid "Password"
+msgstr ""
+

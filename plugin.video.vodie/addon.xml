@@ -2,11 +2,13 @@
 <addon id="plugin.video.vodie"
        name="VODie - Video On Demand Ireland"
        version="1.1.3lm"
-       provider-name="kitesurfing@kitesurfing.ie, liam.friel@gmail.com, jpearce">
+       provider-name="kitesurfing@kitesurfing.ie, liam.friel@gmail.com, jpearce, shanemeagher@outlook.com">
   <requires>
     <import addon="xbmc.python" version="1.0"/>
     <import addon="script.module.simplejson" version="2.0.10"/>
     <import addon="script.module.beautifulsoup" version="3.0.8"/>
+    <import addon="script.module.socksipy" version="2.0.0">
+</import>
   </requires>
   <extension point="xbmc.python.pluginsource"
             library="default.py">
