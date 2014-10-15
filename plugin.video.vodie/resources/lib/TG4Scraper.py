@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# vim:ts=4:sw=4:ai:et:si:sts=4
 
 """
     VODie
@@ -11,9 +12,11 @@ from BeautifulSoup import SoupStrainer, MinimalSoup as BeautifulSoup, BeautifulS
 import urllib, urllib2
 import MenuConstants
 
+userAgentHeaders = { "User-Agent" : "Mozilla/5.0" }
+
 # URL Constants http://www.tg4.ie/en/programmes.html
 
-TG4_URL          = 'http://www.tg4.ie/en/programmes'
+TG4_URL          = 'http://www.tg4.ie/en/programmes.html'
 MAINURL          = TG4_URL 
 VIDEO_DETAIL_URL = TG4_URL 
 #VIDEO_DETAIL_URL = TG4_URL % ('ajax_controller.aspx?cmd=play&level=&deliverymethod=stream&contentid=%s&istrailer=false&priceid=0&machineid=&bitrate=-1&deliverdrm=false&silent=false&format=mp4&subscriberObjectIdForRegisterPlaybackAction=0&subscriptionpurchase=false')
@@ -33,14 +36,16 @@ class TG4:
         
     def getVideoDetails(self, url, includeAds = True):
         # Load and Read the URL
-        f = urllib2.urlopen(VIDEO_DETAIL_URL%(url))
+        req = urllib2.Request(VIDEO_DETAIL_URL%(url), None, userAgentHeaders)
+        f = urllib2.urlopen(req) 
         text = f.read()
         f.close()
         
         REGEXP = "\'asseturl\':\'(.*?)\'"
         for mymatch in re.findall(REGEXP, text):
             # Load and Read found URL
-            f = urllib2.urlopen(mymatch)
+            req = urllib2.Request(mymatch, None, userAgentHeaders)
+            f = urllib2.urlopen(req) 
             text = f.read()
             f.close()
             
@@ -66,20 +71,22 @@ class TG4:
 
     def getMainMenu(self, level = '', mode = MenuConstants.MODE_CREATEMENU):
         # Load and Read URL
-        f = urllib2.urlopen(MAINURL)
+        req = urllib2.Request(MAINURL, None, userAgentHeaders)
+        f = urllib2.urlopen(req)
         text = f.read()
+        f.close()
         
         PAGE_REGEXP = '<div id="inner_content1" class="content_box">(.*)</div>'
-        PROG_REGEXP = '<div id="schedule_Holder">(.*?)<div class="schedule_Cell1"><a href="(.*?)"><img src="(.*?)" alt="" class="imgBdr" /></a></div>(.*?)<div class="schedule_Cell2"><b>(.*?)</b></div>(.*?)<div class="schedule_Cell6">(.*?)</div>(.*?)</div>'
+        PROG_REGEXP = '<div id="schedule_Holder">.*?<div class="schedule_Cell1"><a href="(.*?)"><img src="(.*?)" .*?class="imgBdr"\s*/?></a></div>.*?<div class="schedule_Cell2"><b>(.*?)</b></div>.*?<div class="schedule_Cell6">(.*?)</div>.*?</div>'
         
         for mymatch in re.findall(PAGE_REGEXP, text, re.DOTALL):
             for progMatch in re.findall(PROG_REGEXP, mymatch, re.DOTALL):
                 yield {'Channel'  : CHANNEL,
-                       'Thumb'    : progMatch[2],
-                       'url'      : progMatch[1],
-                       'Title'    : str(progMatch[4]),
+                       'Thumb'    : progMatch[1],
+                       'url'      : progMatch[0],
+                       'Title'    : str(progMatch[2]),
                        'mode'     : MenuConstants.MODE_GETEPISODES,
-                       'Plot'     : progMatch[6]}
+                       'Plot'     : progMatch[3]}
 
     def getMenuItems(self, type):
         if type == MenuConstants.MODE_MAINMENU:
@@ -90,7 +97,8 @@ class TG4:
     def getEpisodes(self, showID):
         
         # Load and Read URL
-        f = urllib2.urlopen(MAINURL)
+        req = urllib2.Request(MAINURL, None, userAgentHeaders)
+        f = urllib2.urlopen(req)
         text = f.read()
         f.close()
         
