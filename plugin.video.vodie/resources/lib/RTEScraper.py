@@ -394,10 +394,19 @@ class RTE:
         videos = [item for sublist in videos for item in sublist]
         return videos
 
+import json
+
 if __name__ == '__main__':
     # Test Main Menu
     rte = RTE()
-    titles = [ "The Beo Show Virtuoso", "Nuacht", "Budget.*" ]
-    videos = rte.getAllVideosByTitle(titles)
-    print videos
+    #titles = [ "The Beo Show Virtuoso", "Nuacht", "Budget.*" ]
+    #videos = rte.getAllVideosByTitle(titles)
+    #print videos
+    allvidsmain = rte.buildMenu(MenuConstants.MODE_PLAYVIDEO)
+    allvidsmain = [item for sublist in allvidsmain for item in sublist]
+    with open("all.json", "w") as f:
+        f.write(json.dumps(allvidsmain))
 
+    titles = { item['Title'] for item in allvidsmain }
+    with open("titles.json", "w") as f:
+        f.write(json.dumps(list(titles)))
