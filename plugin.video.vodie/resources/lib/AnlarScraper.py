@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# vim:ts=4:sw=4:ai:et:si:sts=4
 
 """
     VODie
@@ -18,7 +19,7 @@ from datetime import date
 
 # Channel Constants
 CHANNEL = 'An Lar'
-MAINURL = 'http://anlar.tv/'
+MAINURL = 'http://anlar.tv'
 ANLARLOGO = 'http://anlar.tv/images/stories/logo1.png'
 
 class Anlar:
@@ -38,31 +39,44 @@ class Anlar:
 
         # Load and read the URL. Not amenable to parsing entirely with regex, too crapiful
 
-        page = urllib2.urlopen(MAINURL)
+        headers = { 'User-Agent' : 'Mozilla/5.0' }
+        req = urllib2.Request(MAINURL, None, headers)
+        page = urllib2.urlopen(req)
         soup = BeautifulSoup.BeautifulSoup(page)
         page.close()
         
         divs = soup.findAll("div", {"class" : "fusion-submenu-wrapper level2"})
-        
-        # Channels are in divs[1]
-        # We can use a REGEX now to parse out the interesting bits
+        # Channels are in divs[0]
+        bullets = divs[0].findAll("li")
 
-        # This page is not so amenable to being parsed 
-        REGEXP = 'href="(.*)".*\s+<span>.*\s+([^\t]*)\s*.*\s+</span>'
-        allmatches = re.findall(REGEXP, str(divs[1]), re.MULTILINE) 
-        for match in allmatches:
-            yield {'Channel' : CHANNEL,
-                   'Thumb'   : ANLARLOGO,
-                   'url'     : match[0],
-                   'Title'   : match[1],
-                   'mode'    : MenuConstants.MODE_PLAYVIDEO}
+        for bullet in bullets:
+            chanString = str(bullet)
+
+            REGEXP = '<a\s+.*href="(.*?)">\s*<span>\s*(.*?)\s*</span>\s*</a>'
+            match = re.search(REGEXP, chanString, re.MULTILINE)
+            if match:
+                yield {'Channel' : CHANNEL,
+                       'Thumb'   : ANLARLOGO,
+                       'url'     : match.group(1),
+                       'Title'   : match.group(2),
+                       'mode'    : MenuConstants.MODE_PLAYVIDEO}
                 
     def getVideoDetails(self, url):
         
         # Load and read the URL
-        f    = urllib2.urlopen(url)
+        headers = { 'User-Agent' : 'Mozilla/5.0' }
+        if not url.startswith("http://"):
+            url = MAINURL + url
+        req = urllib2.Request(url, None, headers)
+        f    = urllib2.urlopen(req)
         text = f.read()
         f.close()
+
+        print text
+
+        playPath = None
+        swf = None
+        rtmpServer = None
 
         # It's just easier to do this in a few separate REGEX expressions. Easier to understand
         REGEXPPLAYPATH = 'clip:{\s+url:"(.*)"'
@@ -76,23 +90,25 @@ class Anlar:
         REGEXPRTMP = "netConnectionUrl: '(.*)/live'"    
         for mymatch in re.findall(REGEXPRTMP, text):
             rtmpServer = str(mymatch)
+
+        if rtmpServer and swf and playPath:
+            rtmpURL = '%s app=live swfUrl=%s playpath=%s' %(rtmpServer, swf, playPath)
         
-        rtmpURL = '%s app=live swfUrl=%s playpath=%s' %(rtmpServer, swf, playPath)
-        
-        yield {'Channel'     : CHANNEL,
-               'Title'       : CHANNEL,
-               'Director'    : CHANNEL,
-               'Genre'       : CHANNEL,
-               'Plot'        : CHANNEL,
-               'PlotOutline' : CHANNEL,
-               'id'          : rtmpURL,
-               'url'         : rtmpURL
-               }
+            yield {'Channel'     : CHANNEL,
+                   'Title'       : CHANNEL,
+                   'Director'    : CHANNEL,
+                   'Genre'       : CHANNEL,
+                   'Plot'        : CHANNEL,
+                   'PlotOutline' : CHANNEL,
+                   'id'          : rtmpURL,
+                   'url'         : rtmpURL
+                   }
                 
 if __name__ == '__main__':
 
     channels = Anlar().getMainMenu()
     
     for channel in channels:
+        print channel
         for detail in Anlar().getVideoDetails(channel['url']):
             print detail

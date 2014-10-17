@@ -10,8 +10,8 @@ import cgi
 import datetime
 import httplib
 import urllib
-import xbmcplugin
-import xbmc
+#import xbmcplugin
+#import xbmc
 import re
 
 try:
