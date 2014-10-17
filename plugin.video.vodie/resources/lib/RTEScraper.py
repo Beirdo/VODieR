@@ -388,9 +388,11 @@ class RTE:
 
     def getAllVideosByTitle(self, titles, type="main"):
         shows = self.getAllShowsByTitle(titles, type)
+        if not shows:
+            return []
         videos = self.buildMenu(MenuConstants.MODE_PLAYVIDEO, type=type,
                                 menumode=MenuConstants.MODE_GETEPISODES,
-                                menu = shows)
+                                menu=shows)
         videos = [item for sublist in videos for item in sublist]
         return videos
 
