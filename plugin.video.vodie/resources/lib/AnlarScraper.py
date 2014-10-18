@@ -119,6 +119,7 @@ class Anlar:
                                 details['Episode'] = episode
                                 details['Thumb'] = thumb
                                 details['url'] = details['url'].replace(" app=live ", " ")
+                                del details['Live']
                                 yield details
         else: 
             playPath = None
@@ -137,14 +138,15 @@ class Anlar:
                     rtmpServer = rtmp.get('netConnectionUrl', None)
 
             if rtmpServer and swf and playPath:
-                rtmpURL = '%s app=live swfUrl=%s playpath=%s' %(rtmpServer, swf, playPath)
+                rtmpURL = '%s swfUrl=%s playpath=%s' %(rtmpServer, swf, playPath)
 
                 channel = CHANNEL + " " + playPath
                 yield {'Channel'     : channel,
                        'Title'       : channel,
                        'Director'    : channel,
                        'Genre'       : playPath,
-                       'id'          : rtmpURL,
+                       'id'          : playPath,
+                       'Live'        : True,
                        'url'         : rtmpURL
                        }
 
