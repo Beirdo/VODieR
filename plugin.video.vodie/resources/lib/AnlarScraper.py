@@ -65,6 +65,28 @@ class Anlar:
                        'Title'   : match.group(2),
                        'mode'    : MenuConstants.MODE_PLAYVIDEO}
 
+    def doArchiveLink(self, title, elem):
+        url = elem['href']
+        episode = elem.stripped_strings
+        strings = list(episode)
+        episode = " ".join(strings)
+        elem = elem.img
+        thumb = elem['src']
+        details = self.getVideoDetails(url)
+        details = list(details)
+        details = details[0]
+        if details:
+            del details['Genre']
+            channel = CHANNEL + " Video Archives"
+            details['Channel'] = channel
+            details['Director'] = channel
+            details['Title'] = title
+            details['Episode'] = episode
+            details['Thumb'] = thumb
+            details['url'] = details['url'].replace(" app=live ", " ")
+            del details['Live']
+            yield details
+
     def getVideoDetails(self, url):
 
         # Load and read the URL
@@ -96,31 +118,15 @@ class Anlar:
                         if elem.name == 'h1' or elem.name == 'div':
                             break
                         if elem.name == 'p':
-                            elem = elem.find_all("a")
-                            if not elem:
+                            elems = elem.find_all("a")
+                            if not elems:
                                 continue
-                            elem = elem[0]
+                            for a in elems:
+                                for item in self.doArchiveLink(title, a):
+                                    yield item
                         if elem.name == 'a':
-                            url = elem['href']
-                            episode = elem.stripped_strings
-                            strings = list(episode)
-                            episode = " ".join(strings)
-                            elem = elem.img
-                            thumb = elem['src']
-                            details = self.getVideoDetails(url)
-                            details = list(details)
-                            details = details[0]
-                            if details:
-                                del details['Genre']
-                                channel = CHANNEL + " Video Archives"
-                                details['Channel'] = channel
-                                details['Director'] = channel
-                                details['Title'] = title
-                                details['Episode'] = episode
-                                details['Thumb'] = thumb
-                                details['url'] = details['url'].replace(" app=live ", " ")
-                                del details['Live']
-                                yield details
+                            for item in  self.doArchiveLink(title, elem):
+                                yield item
         else: 
             playPath = None
             swf = None
@@ -165,13 +171,13 @@ class Anlar:
 
         videos = []
         try:
-            anlar.startBrowser()
+            self.startBrowser()
 
             for channel in channels:
-                for detail in anlar.getVideoDetails(channel['url']):
-                    vids.append(detail)
+                for detail in self.getVideoDetails(channel['url']):
+                    videos.append(detail)
         finally:
-            anlar.stopBrowser()
+            self.stopBrowser()
 
         videos = [ item for item in videos if regexp.match(item['Title']) ]
 
