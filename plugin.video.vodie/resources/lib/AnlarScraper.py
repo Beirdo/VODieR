@@ -3,11 +3,11 @@
 
 """
     VODie
-    
+
     Updated AnLar scraper, handles several channels
-    
+
     liam.friel@gmail.com
-    
+
 """
 
 import re
@@ -48,7 +48,7 @@ class Anlar:
         page = urllib2.urlopen(req)
         soup = BeautifulSoup(page)
         page.close()
-        
+
         divs = soup.findAll("div", {"class" : "fusion-submenu-wrapper level2"})
         # Channels are in divs[0]
         bullets = divs[0].findAll("li")
@@ -64,9 +64,9 @@ class Anlar:
                        'url'     : match.group(1),
                        'Title'   : match.group(2),
                        'mode'    : MenuConstants.MODE_PLAYVIDEO}
-                
+
     def getVideoDetails(self, url):
-        
+
         # Load and read the URL
         if not url.startswith("http://"):
             url = MAINURL + url
@@ -123,7 +123,7 @@ class Anlar:
             clip = flashvars.get('clip', None)
             if clip:
                 playPath = clip.get('url', None)
-                
+
             plugins = flashvars.get('plugins', None)
             if plugins:
                 rtmp = plugins.get('rtmp', None)
@@ -133,7 +133,7 @@ class Anlar:
 
             if rtmpServer and swf and playPath:
                 rtmpURL = '%s app=live swfUrl=%s playpath=%s' %(rtmpServer, swf, playPath)
-            
+
                 channel = CHANNEL + " " + playPath
                 yield {'Channel'     : channel,
                        'Title'       : channel,
@@ -151,19 +151,45 @@ class Anlar:
     def stopBrowser(self):
         self.browser.quit()
         self.display.stop()
-                
+
+    def getAllVideosByTitle(self, titles, type="main"):
+        regexp = re.compile("^(" + "|".join(titles) + ")$")
+        channels = self.getMainMenu()
+
+        videos = []
+        try:
+            anlar.startBrowser()
+
+            for channel in channels:
+                for detail in anlar.getVideoDetails(channel['url']):
+                    vids.append(detail)
+        finally:
+            anlar.stopBrowser()
+
+        videos = [ item for item in videos if regexp.match(item['Title']) ]
+
+        return videos
+
+
 if __name__ == '__main__':
 
     anlar = Anlar()
     channels = anlar.getMainMenu()
-    
-    anlar.startBrowser()
 
     vids = []
-    for channel in channels:
-        for detail in anlar.getVideoDetails(channel['url']):
-            vids.append(detail)
+    try:
+        anlar.startBrowser()
 
-    anlar.stopBrowser()
+        for channel in channels:
+            for detail in anlar.getVideoDetails(channel['url']):
+                vids.append(detail)
+    finally:
+        anlar.stopBrowser()
 
+    with open("Anlar.all.json", "w") as f:
+        f.write(json.dumps(vids))
+
+    titles = { item['Title'] for item in vids }
+    with open("Anlar.titles.json", "w") as f:
+        f.write(json.dumps(list(titles)))
     print vids
