@@ -95,6 +95,11 @@ class Anlar:
                             continue
                         if elem.name == 'h1' or elem.name == 'div':
                             break
+                        if elem.name == 'p':
+                            elem = elem.find_all("a")
+                            if not elem:
+                                continue
+                            elem = elem[0]
                         if elem.name == 'a':
                             url = elem['href']
                             episode = elem.stripped_strings
@@ -186,10 +191,11 @@ if __name__ == '__main__':
     finally:
         anlar.stopBrowser()
 
-    with open("Anlar.all.json", "w") as f:
+    with open("all.Anlar.json", "w") as f:
         f.write(json.dumps(vids))
 
     titles = { item['Title'] for item in vids }
-    with open("Anlar.titles.json", "w") as f:
+    with open("titles.Anlar.json", "w") as f:
         f.write(json.dumps(list(titles)))
+
     print vids

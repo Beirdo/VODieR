@@ -406,9 +406,9 @@ if __name__ == '__main__':
     #print videos
     allvidsmain = rte.buildMenu(MenuConstants.MODE_PLAYVIDEO)
     allvidsmain = [item for sublist in allvidsmain for item in sublist]
-    with open("RTE.all.json", "w") as f:
+    with open("all.RTE.json", "w") as f:
         f.write(json.dumps(allvidsmain))
 
     titles = { item['Title'] for item in allvidsmain }
-    with open("RTE.titles.json", "w") as f:
+    with open("titles.RTE.json", "w") as f:
         f.write(json.dumps(list(titles)))
