@@ -12,10 +12,14 @@
 
 import re
 import sys
-import BeautifulSoup
 import urllib, urllib2
 import MenuConstants
 from datetime import date
+from pyvirtualdisplay import Display
+from selenium import webdriver
+from bs4 import BeautifulSoup
+import bs4
+import json
 
 # Channel Constants
 CHANNEL = 'An Lar'
@@ -42,7 +46,7 @@ class Anlar:
         headers = { 'User-Agent' : 'Mozilla/5.0' }
         req = urllib2.Request(MAINURL, None, headers)
         page = urllib2.urlopen(req)
-        soup = BeautifulSoup.BeautifulSoup(page)
+        soup = BeautifulSoup(page)
         page.close()
         
         divs = soup.findAll("div", {"class" : "fusion-submenu-wrapper level2"})
@@ -64,51 +68,102 @@ class Anlar:
     def getVideoDetails(self, url):
         
         # Load and read the URL
-        headers = { 'User-Agent' : 'Mozilla/5.0' }
         if not url.startswith("http://"):
             url = MAINURL + url
-        req = urllib2.Request(url, None, headers)
-        f    = urllib2.urlopen(req)
-        text = f.read()
-        f.close()
 
-        print text
+        self.browser.get(url)
+        text = self.browser.page_source
 
-        playPath = None
-        swf = None
-        rtmpServer = None
+        soup = BeautifulSoup(text)
 
-        # It's just easier to do this in a few separate REGEX expressions. Easier to understand
-        REGEXPPLAYPATH = 'clip:{\s+url:"(.*)"'
-        for mymatch in re.findall(REGEXPPLAYPATH, text):
-            playPath = str(mymatch)
+        elems = soup("param", attrs={'name': 'flashvars'})
+        flashvars = None
+        if elems:
+            flashvars = elems[0]['value'].replace("config=", "")
+            flashvars = json.loads(flashvars)
+
+        if not flashvars:
+            articles = soup.find_all("div", class_="rt-article")
+            if articles:
+                article = articles[0]
+                for titles in article.find_all("h1"):
+                    title = titles.stripped_strings
+                    strings = list(title)
+                    title = " ".join(strings)
+                    for elem in titles.next_siblings:
+                        if type(elem) is bs4.element.NavigableString:
+                            continue
+                        if elem.name == 'h1' or elem.name == 'div':
+                            break
+                        if elem.name == 'a':
+                            url = elem['href']
+                            episode = elem.stripped_strings
+                            strings = list(episode)
+                            episode = " ".join(strings)
+                            elem = elem.img
+                            thumb = elem['src']
+                            details = self.getVideoDetails(url)
+                            details = list(details)
+                            details = details[0]
+                            if details:
+                                del details['Genre']
+                                channel = CHANNEL + " Video Archives"
+                                details['Channel'] = channel
+                                details['Director'] = channel
+                                details['Title'] = title
+                                details['Episode'] = episode
+                                details['Thumb'] = thumb
+                                details['url'] = details['url'].replace(" app=live ", " ")
+                                yield details
+        else: 
+            playPath = None
+            swf = None
+            rtmpServer = None
+
+            clip = flashvars.get('clip', None)
+            if clip:
+                playPath = clip.get('url', None)
+                
+            plugins = flashvars.get('plugins', None)
+            if plugins:
+                rtmp = plugins.get('rtmp', None)
+                if rtmp:
+                    swf = rtmp.get('url', None)
+                    rtmpServer = rtmp.get('netConnectionUrl', None)
+
+            if rtmpServer and swf and playPath:
+                rtmpURL = '%s app=live swfUrl=%s playpath=%s' %(rtmpServer, swf, playPath)
             
-        REGEXPSWF = "rtmp:{\s+url: '(.*)'"
-        for mymatch in re.findall(REGEXPSWF, text):
-            swf = str(mymatch)
-        
-        REGEXPRTMP = "netConnectionUrl: '(.*)/live'"    
-        for mymatch in re.findall(REGEXPRTMP, text):
-            rtmpServer = str(mymatch)
+                channel = CHANNEL + " " + playPath
+                yield {'Channel'     : channel,
+                       'Title'       : channel,
+                       'Director'    : channel,
+                       'Genre'       : playPath,
+                       'id'          : rtmpURL,
+                       'url'         : rtmpURL
+                       }
 
-        if rtmpServer and swf and playPath:
-            rtmpURL = '%s app=live swfUrl=%s playpath=%s' %(rtmpServer, swf, playPath)
-        
-            yield {'Channel'     : CHANNEL,
-                   'Title'       : CHANNEL,
-                   'Director'    : CHANNEL,
-                   'Genre'       : CHANNEL,
-                   'Plot'        : CHANNEL,
-                   'PlotOutline' : CHANNEL,
-                   'id'          : rtmpURL,
-                   'url'         : rtmpURL
-                   }
+    def startBrowser(self):
+        self.display = Display(visible=0, size=(800, 600))
+        self.display.start()
+        self.browser = webdriver.Firefox()
+
+    def stopBrowser(self):
+        self.browser.quit()
+        self.display.stop()
                 
 if __name__ == '__main__':
 
-    channels = Anlar().getMainMenu()
+    anlar = Anlar()
+    channels = anlar.getMainMenu()
     
+    anlar.startBrowser()
+
+    vids = []
     for channel in channels:
-        print channel
-        for detail in Anlar().getVideoDetails(channel['url']):
-            print detail
+        for detail in anlar.getVideoDetails(channel['url']):
+            vids.append(detail)
+
+    anlar.stopBrowser()
+
+    print vids
