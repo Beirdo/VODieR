@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!usr/bin/python
 # vim:ts=4:sw=4:ai:et:si:sts=4
 
 """
@@ -8,24 +8,36 @@
 
 import re
 import sys
-from BeautifulSoup import SoupStrainer, MinimalSoup as BeautifulSoup, BeautifulStoneSoup
+import time
+from datetime import datetime
+from bs4 import BeautifulSoup
 import urllib, urllib2
 import MenuConstants
+from brightcove import BrightcoveBaseChannel
+import json
 
 userAgentHeaders = { "User-Agent" : "Mozilla/5.0" }
 
 # URL Constants http://www.tg4.ie/en/programmes.html
 
-TG4_URL          = 'http://www.tg4.ie/en/programmes.html'
-MAINURL          = TG4_URL 
-VIDEO_DETAIL_URL = TG4_URL 
-#VIDEO_DETAIL_URL = TG4_URL % ('ajax_controller.aspx?cmd=play&level=&deliverymethod=stream&contentid=%s&istrailer=false&priceid=0&machineid=&bitrate=-1&deliverdrm=false&silent=false&format=mp4&subscriberObjectIdForRegisterPlaybackAction=0&subscriptionpurchase=false')
+BASEURL          = 'http://www.tg4.tv'
+MAINURL          = BASEURL + '/index.html?l=en'
 
 # Channel constants
 CHANNEL = 'TG4'
 LOGOICON = 'http://www.tg4.ie/assets/templates/tg4/images/logo-trans.png'
+TOKEN = 'TpAfy9MVrSV25Xi49sYFIdS1qmF32sMqHclRGT0xOQuxwE9FnXHETQ..'
+HASH_URL = 'http://admin.brightcove.com/viewer/us20130212.1339/federatedVideoUI/BrightcovePlayer.swf?uid=1360751436519'
 
-class TG4:
+videoFields = [ "name", "id", "referenceId", "length", "shortDescription",
+                "startDate", "endDate", "publishedDate", "thumbnailURL",
+                "videoStillURL", "longDescription" ]
+customFields = [ "category_c", "seriestitle", "seriesimgurl", "part", "title",
+                 "series", "episode", "totalparts" ]
+
+class TG4(BrightcoveBaseChannel):
+    def __init__(self):
+        BrightcoveBaseChannel.__init__(self, TOKEN, HASH_URL)
 
     def getChannelDetail(self):
         return {'Channel'  : CHANNEL,
@@ -34,59 +46,66 @@ class TG4:
                 'mode'     : MenuConstants.MODE_MAINMENU,
                 'Plot'     : CHANNEL}
         
-    def getVideoDetails(self, url, includeAds = True):
-        # Load and Read the URL
-        req = urllib2.Request(VIDEO_DETAIL_URL%(url), None, userAgentHeaders)
-        f = urllib2.urlopen(req) 
-        text = f.read()
-        f.close()
-        
-        REGEXP = "\'asseturl\':\'(.*?)\'"
-        for mymatch in re.findall(REGEXP, text):
-            # Load and Read found URL
-            req = urllib2.Request(mymatch, None, userAgentHeaders)
-            f = urllib2.urlopen(req) 
-            text = f.read()
-            f.close()
-            
-            # Grabbing the MetaBase
-            METABASE_REGEXP = '<meta base="(.*?)" />'
-            for mymatch2 in re.findall(METABASE_REGEXP, text):
-                metabase = mymatch2
-            
-            # Grabbing the mp4 path
-            MP4_REGEXP = '<video src="(.*?)" system-bitrate="1200000" />'
-            for mymatch2 in re.findall(MP4_REGEXP, text):
-                mp4 = mymatch2
-
-            yield {'Channel'     : CHANNEL,
-                   'Title'       : CHANNEL,
-                   'Director'    : CHANNEL,
-                   'Genre'       : CHANNEL,
-                   'Plot'        : CHANNEL,
-                   'PlotOutline' : CHANNEL,
-                   'id'          : url,
-                   'url'         : '%s playpath=%s'%(metabase,mp4)
-                   }
+    def getVideoDetails(self, id, includeAds = True):
+        metadata = { 'id' : id }
+        metadata['url'] = self.get_download_link(id, metadata)
+        if metadata['url']:
+            yield metadata
 
     def getMainMenu(self, level = '', mode = MenuConstants.MODE_CREATEMENU):
-        # Load and Read URL
-        req = urllib2.Request(MAINURL, None, userAgentHeaders)
-        f = urllib2.urlopen(req)
-        text = f.read()
-        f.close()
-        
-        PAGE_REGEXP = '<div id="inner_content1" class="content_box">(.*)</div>'
-        PROG_REGEXP = '<div id="schedule_Holder">.*?<div class="schedule_Cell1"><a href="(.*?)"><img src="(.*?)" .*?class="imgBdr"\s*/?></a></div>.*?<div class="schedule_Cell2"><b>(.*?)</b></div>.*?<div class="schedule_Cell6">(.*?)</div>.*?</div>'
-        
-        for mymatch in re.findall(PAGE_REGEXP, text, re.DOTALL):
-            for progMatch in re.findall(PROG_REGEXP, mymatch, re.DOTALL):
-                yield {'Channel'  : CHANNEL,
-                       'Thumb'    : progMatch[1],
-                       'url'      : progMatch[0],
-                       'Title'    : str(progMatch[2]),
-                       'mode'     : MenuConstants.MODE_GETEPISODES,
-                       'Plot'     : progMatch[3]}
+        # Being a brightcove site (YAY), this should be simple
+        qsdata = { "video_fields" : ",".join(videoFields), 
+                   "custom_fields" : ",".join(customFields) }
+        page = 0
+        items = []
+        totalCount = 0
+        while True:
+            url = self.get_all_videos_url(page, qsdata)
+
+            text = ""
+            try:
+                req = urllib2.Request(url, None, userAgentHeaders)
+                f = urllib2.urlopen(req) 
+                text = f.read()
+                f.close()
+            except urllib2.HTTPError:
+                pass
+
+            if not text:
+                break
+
+            data = json.loads(text)
+            items.extend(data['items'])
+            if not totalCount:
+                totalCount = data['total_count']
+                lastPage = int(totalCount / 100)
+                if totalCount % 100 == 0:
+                    lastPage -= 1
+            if page >= lastPage:
+                break
+            page += 1
+            
+        for item in items:
+            desc = None
+            if 'longDescription' in item and item['longDescription']:
+                desc = item['longDescription']
+            else:
+                desc = item.get('shortDescription', None)
+
+            metadata = {'Channel'    : CHANNEL,
+                        'Thumb'      : item['thumbnailURL'],
+                        'url'        : item['id'],
+                        'Title'      : item['customFields']['seriestitle'],
+                        'Episode'    : item['customFields']['title'],
+                        'mode'       : MenuConstants.MODE_PLAYVIDEO,
+                        'Duration'   : float(item['length']) / 1000.0,
+                        'pubDate'    : float(item['publishedDate']) / 1000.0,
+                        'seriesNum'  : item['customFields']['series'],
+                        'episodeNum' : item['customFields']['episode'],
+            }
+            if desc:
+                metadata['Plot'] = desc
+            yield metadata
 
     def getMenuItems(self, type):
         if type == MenuConstants.MODE_MAINMENU:
@@ -94,45 +113,9 @@ class TG4:
         else:
             return self.getMainMenu(level = type, mode = MenuConstants.MODE_GETEPISODES)
         
-    def getEpisodes(self, showID):
-        
-        # Load and Read URL
-        req = urllib2.Request(MAINURL, None, userAgentHeaders)
-        f = urllib2.urlopen(req)
-        text = f.read()
-        f.close()
-        
-        LIST_REGEXP = '<div id="mainContentListContent">(.*?)</div></div></div>'
-        EPISODE_REGEXP = '<img src="(.*?)" alt="cover art"></div></a><h1><a href="(.*?content=(.*?))" title="Show more info" class="moreinfo">(.*?)</a></h1><p class="shortDescription"><a href="(.*?)" title="Show more info" class="moreinfo">(.*?)</a>'
-        for mymatch in re.findall(LIST_REGEXP, text, re.MULTILINE):
-            for mymatch2 in re.findall(EPISODE_REGEXP, mymatch, re.MULTILINE):
-                # Try to get the required data for this episode
-                try:
-                    day   = int(mymatch2[5][:2])
-                    month = int(mymatch2[5][3:5])
-                    year  = int(mymatch2[5][6:8])
-                    date  = "%2d-%2d-20%2d" % (day,month,year)
-                except (ValueError, IndexError):
-                    date  = 'None'
-                    year  = 2011
-                
-                yield {'Channel'     : CHANNEL,
-                        'Thumb'      : TG4_URL%(mymatch2[0]),
-                        'url'        : mymatch2[2],
-                        'Title'      : mymatch2[3],
-                        'mode'       : MenuConstants.MODE_PLAYVIDEO,
-                        'Plot'       : mymatch2[5],
-                        'plotoutline': mymatch2[3],
-                        'Date'       : date,
-                        'Year'       : year,
-                        'Studio'     : CHANNEL}
-
-
 if __name__ == '__main__':
-    for item in TG4().getMainMenu():
+    tg4 = TG4()
+    for item in tg4.getMainMenu():
         print item
-        for episode in TG4().getEpisodes(item['url']):
-            print episode
-            for video in TG4().getVideoDetails(episode['url']):
-                print video
-            
+        for video in tg4.getVideoDetails(item['url']):
+            print video
